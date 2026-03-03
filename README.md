@@ -1,19 +1,17 @@
 # Black-Scholes Option Pricing Simulation
 Using the black-scholes formula, the price of a European Buy Call is calculated to simulate random price paths of the option where traders can look at and analyze to see if it could possibly be profitable.
 
-## Table of Contents
-- [About](#about)
-- [Calculations](#calculations)
-- [Simulations](#simulations)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Features](#features)
-- [In-Progress](#in-progress)
-
-## About
+## Overview
 * Users would be interested in seeing how the future of the option price plays out with the Monte Carlo simulation to see how profitable the buy call could be.
-    
 * Analyzing why implied volatility is important in buying the option vs using historical volatility.
+
+## Directory Structure
+```
+├── price_buy_call.py
+├── compute_vols.py 
+├── price_call_debit_spread.py       
+├── vol_diff.py            
+```
 
 ## Calculations
 * Using the black-scholes formula, the price of a European Buy Call is calculated.
@@ -25,7 +23,7 @@ Using the black-scholes formula, the price of a European Buy Call is calculated 
         * The risk-free rate, where I used 4%. (*a*)
     * Some Minor Problems and Their Fixes
         * *yfinance* IV becomes less than 0.00001 and bid and ask prices all become 0 when the market is closed.
-        * To calculate the option price using the black-scholes formula, IV is calculated "backwards" using the bisection method, where we calculate the IV starting from the mid-range of 500% and input it in the formula multiple times until we get an IV where the calculated option price is equal to the last option price fetched from *yfinance*.
+        * To calculate the option price using the black-scholes formula, IV is calculated "backwards" using the bisection method, where it starts from 500% and it is inputted into the formula util and input it until we get an IV where the calculated option price is equal to the last option price fetched from *yfinance*.
 
 ## Simulations
 * The simulation for the random price movement for the day:
