@@ -36,8 +36,7 @@ git clone https://github.com/razahtet/black-scholes-option-pricing.git
 ```bash
 cd black-scholes-option-pricing
 ```
-3. 
-Install dependencies:
+3. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
