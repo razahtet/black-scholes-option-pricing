@@ -1,0 +1,14 @@
+# Ignore environment files
+.env
+
+# Ignore python virtual environments
+venv/
+.venv/
+env/
+scripts/pyvenv.cfg
+
+# Ignore dependencies
+node_modules/
+
+# Ignore build output
+dist/
