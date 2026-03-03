@@ -132,25 +132,29 @@ plt.title("Predicting PLTR $145 Call Price Expiring 7/17/26")
 def random_price_movement(daysLeft, options_data):
     options_data[0]["T"] = daysLeft/365
     # Random Number Generator that will determine the price change for the day:
-    # 0: no change, 
-    # 1: up a little bit, 
-    # 2: up a good amount, 
-    # 3: up a lot higher than usual (e.g. earnings beat),
-    # 4: down a little bit, 
-    # 5: down a good amount,
-    # 6: down a lot lower than usual (e.g. earnings miss),
+    # 0: no change
+    # 1: up a little bit
+    # 2: up a good amount
+    # 3: up a lot higher than usual (e.g. earnings beat)
+    # 4: down a little bit
+    # 5: down a good amount
+    # 6: down a lot lower than usual (e.g. earnings miss)
     random_day = random.randint(0,6)
     current_x0 = options_data[0]["x0"]
     current_vol = options_data[0]["vol"]
-    if 0 < random_day < 4: # UP
+    sensitivity_map = {
+        0: 0.1, # No change
+        1: 0.3, 4: 0.3, # lower sensitivity for small up or down days
+        2: 0.5, 5: 0.5, # middle amount of sensitivity for normal up or down days
+        3: 0.7, 6: 0.7 # market will react more strongly to good or bad news (panick), so higher sensitivity
+    }
+    sensitivity = sensitivity_map[random_day]
+    if 0 < random_day < 4: # UP:
         price_change = current_vol * 0.5 * random_day
-        sensitivity = 0.3 # Market is calm when going up
     elif random_day > 3: # DOWN
         price_change = current_vol * -0.5 * (random_day - 3)
-        sensitivity = 0.7 # Market is panicky when going down
     else:
         price_change = 0
-        sensitivity = 0.1
             
     # update price
     headline_move = 0
@@ -262,5 +266,7 @@ def simulate_option_price(bound, currentTime=currentTime, expireTime=expireTime,
     print("Average Call Price:", averageOption)
     print(f"Number of times reached 0: {times0}")
 
-for i in range(10, 10001, i=i*10):
-    simulate_option_price(i, currentTime, expireTime, options_data)
+num_times = 10
+while num_times <= 10000:
+    simulate_option_price(num_times, currentTime, expireTime, options_data)
+    num_times *= 10
