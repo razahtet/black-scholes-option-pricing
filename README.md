@@ -100,10 +100,11 @@ pip install -r requirements.txt
    * compute_vols.py is the file for calculating the historical volatility of a stock for a time period, with 1 year as the default.
       * python compute_vols.py
 
-## Features
-- price_buy_call.py: Graph of Monte Carlo Simulations for the stock and its specific buy call and In-Depth Analysis of the # of times the option reached 0 at expiration, its average option price, and the average stock price over 10 to 10K iterations.
-- compute_vols.py: List of calculated historical volatilities and their last closing prices for stocks.
+## Current Features
+* price_buy_call.py: Graph of Monte Carlo Simulations for the stock and its specific buy call and In-Depth Analysis of the # of times the option reached 0 at expiration, its average option price, and the average stock price over 10 to 10K iterations.
+* compute_vols.py: List of calculated historical volatilities and their last closing prices for stocks.
 
 ## In-progress
-- Currently working on analyzing the effects of Implied Volatility (IV) and Historical Volatility on option and market prices and calculating the option price for a call debit spread and simulating it.
-- Replace the random number generator for the random price movement on a simulated day with brownian motion.
+* Graphing the effects of Implied Volatility (IV) and Historical Volatility on option and market prices.
+* Calculating the option price for a call debit spread and simulating it.
+* Replace the random number generator for the random price movement on a simulated day with brownian motion.
