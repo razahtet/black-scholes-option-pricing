@@ -2,12 +2,15 @@ import yfinance as yf
 import numpy as np
 import pandas as pd
 
-# tickers = ["MRVL", "NVDA", "IONQ"]
-tickers = ["PLTR"]
+tickers = ["MRVL", "NVDA", "IONQ", "PLTR"]
 
 def get_vol_close(ticker, period="1y"):
     data = yf.download(ticker, period=period, interval="1d", auto_adjust=True)
-    close = data["Close"].dropna()
+    
+    if isinstance(data.columns, pd.MultiIndex):
+        close = data["Close"][ticker].dropna()
+    else:
+        close = data["Close"].dropna()
 
     # Daily log returns
     log_returns = np.log(close / close.shift(1)).dropna()
@@ -18,7 +21,7 @@ def get_vol_close(ticker, period="1y"):
     # market price = last closing price for the 1yr time period
     last_close = close.iloc[-1] # last close
 
-    return float(vol), float(last_close)
+    return [float(vol), float(last_close)]
 
 rows = []
 for t in tickers:

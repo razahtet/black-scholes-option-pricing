@@ -6,28 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 import copy
+from compute_vols import get_vol_close
 
 # tickers = input("Enter the stocks you want to analyze (e.g. MRVL, NVDA, ticker): ").split(",")
-
-# historical volatility
-def get_vol_close(ticker, period="1y"):
-    data = yf.download(ticker, period=period, interval="1d", auto_adjust=True)
-    
-    if isinstance(data.columns, pd.MultiIndex):
-        close = data["Close"][ticker].dropna()
-    else:
-        close = data["Close"].dropna()
-
-    # Daily log returns
-    log_returns = np.log(close / close.shift(1)).dropna()
-
-    # Annualized volatility (252 trading days)
-    vol = log_returns.std() * np.sqrt(252)
-
-    # market price = last closing price for the 1yr time period
-    last_close = close.iloc[-1] # last close
-
-    return [float(vol), float(last_close)]
 
 # rows = []
 # for t in tickers:
@@ -81,43 +62,54 @@ def calc_iv_backwards(x0, K, a, T, last_price):
 currentTime = int(datetime.datetime.now().strftime("%j"))
 expireTime = int(datetime.datetime(2026, 7, 17).strftime("%j"))
 # for t in tickers:
-ticker = get_vol_close("PLTR")
-# print(ticker, "ticker")
-tickerOption = yf.Ticker("PLTR")
+tickerInf = get_vol_close("PLTR")
 target_date = "2026-07-17"
-call_price = 0
-try:
-    opt_chain = tickerOption.option_chain(target_date)
-    calls = opt_chain.calls
-    specific_call = calls[calls['strike'] == 145.0]
-    print(specific_call)
-    yfIV = float(specific_call['impliedVolatility'].iloc[0])
-    print("IV:", yfIV)
-    if not specific_call.empty:
-        # Get the Ask price (what you pay to buy)
-        ask_price = specific_call['ask'].values[0]
-        bid_price = specific_call['bid'].values[0]
-        call_price = (ask_price + bid_price) / 2
-        print(f"PLTR $145 Call for {target_date}:")
-        print(f"  - Mid: ${call_price}")
-    else:
-        print(f"The $145 strike is not available for {target_date}.")
-    if yfIV < 0.0001:
-        print("yfinance's IV is too low, most likely because the market is closed. Will calculate IV using the last option price and the black-scholes formula.")
-        call_price = specific_call['lastPrice'].values[0]
-        yfIV = calc_iv_backwards(ticker[1], 145, 0.04, (expireTime-currentTime)/365, call_price)
-        print("Calculated IV:", yfIV)
-except ValueError:
-    print(f"Error: {target_date} is not a valid expiration date for PLTR.")
-    print(f"Available dates are: {tickerOption.options}")
+
+def get_IV_mp(ticker, target_date, strike, a, T):
+    try:
+        tickerOption = yf.Ticker(ticker)
+        opt_chain = tickerOption.option_chain(target_date)
+        calls = opt_chain.calls
+        specific_call = calls[calls['strike'] == strike]
+        print(specific_call)
+        yfIV = float(specific_call['impliedVolatility'].iloc[0])
+        print("IV:", yfIV)
+        if not specific_call.empty:
+            # Get the Ask price (what you pay to buy)
+            ask_price = specific_call['ask'].values[0]
+            bid_price = specific_call['bid'].values[0]
+            call_price = (ask_price + bid_price) / 2
+            print(f"PLTR ${strike} Call for {target_date}:")
+            print(f"  - Mid: ${call_price}")
+        else:
+            print(f"The ${strike} strike is not available for {target_date}.")
+            return None
+        if yfIV < 0.0001:
+            print("yfinance's IV is too low, most likely because the market is closed. Will calculate IV using the last option price and the black-scholes formula.")
+            call_price = specific_call['lastPrice'].values[0]
+            yfIV = calc_iv_backwards(ticker[1], strike, a, T, call_price)
+            print("Calculated IV:", yfIV)
+        return [yfIV, call_price]
+    except ValueError:
+        print(f"Error: {target_date} is not a valid expiration date for PLTR.")
+        print(f"Available dates are: {tickerOption.options}")
+        return None
+
+iv_mp = get_IV_mp("PLTR", target_date, 145, 0.04, (expireTime-currentTime/365))
+if iv_mp != None:
+    iv = iv_mp[0]
+    call_price = iv_mp[1]
+else:
+    iv = 0
+    call_price = 0
 
 options_data = [
         {"ticker": "PLTR", 
         "T": (expireTime-currentTime)/365, 
         "K": 145, 
         "mp": call_price, 
-        "vol": yfIV,
-        "x0": ticker[1]}
+        "vol": iv,
+        "x0": tickerInf[1]}
     ]
 
 colorArray = ["blue", "green", "orange", "brown", "black"]
@@ -169,7 +161,7 @@ def random_price_movement(daysLeft, options_data):
     options_data[0]["vol"] -= (pct_move * sensitivity)
     # small nudge so iv doesn't go to zero or infinity 
     # (drifts back toward starting sigma by 2% each day)
-    options_data[0]["vol"] += (yfIV - options_data[0]["vol"]) * 0.02
+    options_data[0]["vol"] += (iv - options_data[0]["vol"]) * 0.02
             
     # make sure the values are in bounds
     options_data[0]["x0"] = max(0.01, options_data[0]["x0"]) # Price > 0
@@ -181,39 +173,42 @@ def inc_currentTime(currentTime, expireTime):
         currentTime = currentTime - 0.0000000001
     return currentTime
 
-for i in range(0, len(colorArray)):
-    timeArray = []
-    opArray = []
-    copy_options_data = copy.deepcopy(options_data)
-    while currentTime <= expireTime:
-        random_price_movement(expireTime-currentTime, copy_options_data)
-        T_safe = max(0.0001, copy_options_data[0]["T"])
-        timeArray.append(currentTime)
-        
-        #calculate the option using the Black-Scholes formula with the updated price and volatility
-        option_p = calc_op(float(copy_options_data[0]["x0"]),
-                                    float(copy_options_data[0]["K"]),
-                                    0.04,
-                                    float(copy_options_data[0]["vol"]),
-                                    T_safe)
-        opArray.append(option_p)
-        currentTime = inc_currentTime(currentTime, expireTime)
-        if currentTime > expireTime:
-            print("Line: " + str(colorArray[i]) + "\nEnd Price: " + str(copy_options_data[0]["x0"]) + "\n" + "End Option Price: " + str(round(option_p,2)))
-        
-    plt.plot(timeArray, opArray, marker="o", linestyle='-', color=colorArray[i])
-    if i == len(colorArray) - 1:
-        plt.show()
-    else:
-        currentTime = int(datetime.datetime.now().strftime("%j"))
-        options_data = [
-            {"ticker": "PLTR", 
-            "T": (expireTime-currentTime)/365, 
-            "K": 145, 
-            "mp": call_price, 
-            "vol": yfIV,
-            "x0": ticker[1]}
-        ]
+def graph_simulation(colorArray, options_data, expireTime, currentTime):
+    for i in range(0, len(colorArray)):
+        timeArray = []
+        opArray = []
+        copy_options_data = copy.deepcopy(options_data)
+        while currentTime <= expireTime:
+            random_price_movement(expireTime-currentTime, copy_options_data)
+            T_safe = max(0.0001, copy_options_data[0]["T"])
+            timeArray.append(currentTime)
+            
+            #calculate the option using the Black-Scholes formula with the updated price and volatility
+            option_p = calc_op(float(copy_options_data[0]["x0"]),
+                                        float(copy_options_data[0]["K"]),
+                                        0.04,
+                                        float(copy_options_data[0]["vol"]),
+                                        T_safe)
+            opArray.append(option_p)
+            currentTime = inc_currentTime(currentTime, expireTime)
+            if currentTime > expireTime:
+                print("Line: " + str(colorArray[i]) + "\nEnd Price: " + str(copy_options_data[0]["x0"]) + "\n" + "End Option Price: " + str(round(option_p,2)))
+            
+        plt.plot(timeArray, opArray, marker="o", linestyle='-', color=colorArray[i])
+        if i == len(colorArray) - 1:
+            plt.show()
+        else:
+            currentTime = int(datetime.datetime.now().strftime("%j"))
+            options_data = [
+                {"ticker": "PLTR", 
+                "T": (expireTime-currentTime)/365, 
+                "K": 145, 
+                "mp": call_price, 
+                "vol": iv,
+                "x0": tickerInf[1]}
+            ]
+
+graph_simulation(colorArray, options_data, expireTime, currentTime)
 
 currentTime = int(datetime.datetime.now().strftime("%j"))
 options_data = [
@@ -221,8 +216,8 @@ options_data = [
     "T": (expireTime-currentTime)/365, 
     "K": 145, 
     "mp": call_price, 
-    "vol": yfIV,
-    "x0": ticker[1]}
+    "vol": iv,
+    "x0": tickerInf[1]}
     ]
     
 def simulate_option_price(bound, currentTime=currentTime, expireTime=expireTime, options_data=options_data):
@@ -255,8 +250,8 @@ def simulate_option_price(bound, currentTime=currentTime, expireTime=expireTime,
             "T": (expireTime-currentTime)/365, 
             "K": 145, 
             "mp": call_price, 
-            "vol": yfIV,
-            "x0": ticker[1]}
+            "vol": iv,
+            "x0": tickerInf[1]}
         ]    
 
     averagePrice = round(averagePrice / bound, 2)
