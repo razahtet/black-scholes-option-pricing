@@ -107,4 +107,4 @@ pip install -r requirements.txt
 ## In-progress
 * Graphing the effects of Implied Volatility (IV) and Historical Volatility on option and market prices.
 * Calculating the option price for a call debit spread and simulating it.
-* Replace the random number generator for the random price movement on a simulated day with brownian motion.
+* Replacing the random number generator for the random price movement on a simulated day with brownian motion.

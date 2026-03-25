@@ -23,7 +23,8 @@ def get_vol_close(ticker, period="1y"):
 
     return [float(vol), float(last_close)]
 
-rows = []
-for t in tickers:
-    vol, last_close = get_vol_close(t)
-    print(f"ticker: {t}, S0:{round(last_close, 2)}, vol:{round(vol, 3)}")
+if __name__ == "__main__":
+    rows = []
+    for t in tickers:
+        vol, last_close = get_vol_close(t)
+        print(f"ticker: {t}, S0:{round(last_close, 2)}, vol:{round(vol, 3)}")

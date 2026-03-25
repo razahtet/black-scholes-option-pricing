@@ -1,6 +1,6 @@
 # Graph comparing the yfinance IV with the getcloseIV (historical IV) 
-#  I calculate by taking the last year of prices of the stock (referencing code from compute_vols.py) 
-# and make an analysis on each affects the calculated black-scholes price and the market price.
+# I calculate the IVs by taking the last year of prices of the stock (referencing code from compute_vols.py) 
+# and make an analysis on how each affects the calculated Black-scholes price and the market price.
 import pandas as pd
 import datetime
 import numpy as np
